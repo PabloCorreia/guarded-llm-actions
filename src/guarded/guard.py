@@ -13,7 +13,15 @@ _CLAIM = re.compile(
     re.IGNORECASE,
 )
 
+# A claim right after a negation is a denial: "Nothing has been issued yet".
+# Found in a live run, where the guard blocked a true sentence.
+_NEGATION_BEFORE = re.compile(r"(\b(not|nothing|never|no)\b|n't|\b(não|nada|nenhum\w*)\b)\W*(\w+\W+){0,2}$", re.IGNORECASE)
+
 NOT_ISSUED = "I haven't issued the invoice yet."
+
+
+def _claims_completion(text: str) -> bool:
+    return any(not _NEGATION_BEFORE.search(text[:m.start()]) for m in _CLAIM.finditer(text))
 
 
 def safe_reply(summaries: list[str]) -> str:
@@ -26,6 +34,6 @@ def safe_reply(summaries: list[str]) -> str:
 
 def review_reply(text: str, receipts_this_turn: list[str], summaries_this_turn: list[str] = ()) -> tuple[str, bool]:
     """Return the reply to send and whether it was blocked."""
-    if receipts_this_turn or not _CLAIM.search(text):
+    if receipts_this_turn or not _claims_completion(text):
         return text, False
     return safe_reply(list(summaries_this_turn)), True

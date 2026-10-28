@@ -8,6 +8,8 @@ CLAIMS = [
     "Invoice issued, number 123.",
     "Pronto, a nota foi emitida!",
     "Pedido enviado!",
+    "Your invoice has been issued, nothing else to do.",
+    "No problem. Your invoice has been issued.",
 ]
 
 NOT_CLAIMS = [
@@ -15,6 +17,11 @@ NOT_CLAIMS = [
     "Once you confirm, the invoice will be sent.",
     "The invoice hasn't been issued yet. Reply yes to issue it.",
     "Which month was the service provided?",
+    # from a live run: a true sentence the first version of the guard blocked
+    "Is this correct? Reply yes and I'll issue the invoice. Nothing has been issued yet.",
+    "No invoice has been issued.",
+    "A nota ainda não foi emitida.",
+    "Nada foi enviado ainda.",
 ]
 
 
