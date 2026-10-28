@@ -16,6 +16,7 @@ from .guard import review_reply
 MODEL = os.environ.get("DEMO_MODEL", "claude-opus-5-5")
 
 SYSTEM = """You help owners of small service businesses request a service invoice.
+Every word of your reply goes to the customer, so write no notes to yourself.
 
 Collect: the issuer's company tax ID, the customer's company tax ID, the amount,
 the month the service was provided (YYYY-MM), and a short description.
