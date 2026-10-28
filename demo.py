@@ -92,7 +92,8 @@ def no_receipt_no_sent() -> None:
     cid = engine.propose(req, turn=1)["confirmation_id"]
     print("confirm in the same turn:", engine.confirm(cid, turn=1))
 
-    reply, blocked = review_reply("Done! Your invoice has been issued.", receipts_this_turn=[])
+    summary = engine.propose(InvoiceRequest(ISSUER, CUSTOMER, "900.00", "2026-10", "Audit"), turn=1)["summary"]
+    reply, blocked = review_reply("Done! Your invoice has been issued.", [], [summary])
     print(f"model says 'has been issued' with no receipt -> blocked={blocked}")
     print(f"customer sees: {reply}")
 
@@ -114,8 +115,10 @@ def live() -> None:
             break
         turn += 1
         messages.append({"role": "user", "content": text})
-        reply, blocked = run_turn(client, engine, messages, turn)
-        print(f"agent> {reply}" + ("   [guard replaced the model's reply]" if blocked else ""))
+        result = run_turn(client, engine, messages, turn)
+        print(f"agent> {result.reply}")
+        if result.blocked:
+            print(f"   [guard replaced the model's reply, which was: {result.model_text!r}]")
     print("\naudit trail:")
     for event, result in engine.audit:
         print(f"  {event}: {result}")

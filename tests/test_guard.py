@@ -1,6 +1,6 @@
 import unittest
 
-from guarded.guard import SAFE_REPLY, review_reply
+from guarded.guard import NOT_ISSUED, review_reply
 
 CLAIMS = [
     "Done! Your invoice has been issued.",
@@ -13,6 +13,7 @@ CLAIMS = [
 NOT_CLAIMS = [
     "Here is the summary. Shall I issue it?",
     "Once you confirm, the invoice will be sent.",
+    "The invoice hasn't been issued yet. Reply yes to issue it.",
     "Which month was the service provided?",
 ]
 
@@ -21,7 +22,14 @@ class GuardTest(unittest.TestCase):
     def test_claims_without_a_receipt_are_blocked(self):
         for text in CLAIMS:
             with self.subTest(text=text):
-                self.assertEqual(review_reply(text, []), (SAFE_REPLY, True))
+                reply, blocked = review_reply(text, [])
+                self.assertTrue(blocked)
+                self.assertTrue(reply.startswith(NOT_ISSUED))
+
+    def test_the_replacement_carries_the_summary(self):
+        reply, blocked = review_reply("Invoice issued.", [], ["Invoice from X to Y, amount 10.00"])
+        self.assertTrue(blocked)
+        self.assertIn("Invoice from X to Y, amount 10.00", reply)
 
     def test_claims_with_a_receipt_pass(self):
         for text in CLAIMS:

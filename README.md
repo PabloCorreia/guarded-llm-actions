@@ -30,7 +30,7 @@ Python 3.10+. No dependencies for the walkthrough or the tests.
 
 ```bash
 python demo.py                                      # offline walkthrough of the four guards
-PYTHONPATH=src python -m unittest discover -s tests  # 20 tests
+PYTHONPATH=src python -m unittest discover -s tests  # 21 tests
 ```
 
 The tests check the tax-ID check digits against a **second, independent implementation**. A checker that shares code with what it checks does not check anything.
@@ -48,7 +48,8 @@ You chat with Claude (default model `claude-opus-5-5`, override with `DEMO_MODEL
 
 - Not the production code, and not a tax tool: it issues nothing, and the "invoice numbers" are fake.
 - Every tax ID used here is fictional and generated at run time. No real identifier is stored in this repo.
-- The reply guard is a pattern match, a last line of defence. The real protection is that only the engine can issue, and only from a confirmation the customer answered.
+- The reply guard is a pattern match, a last line of defence. The real protection is that only the engine can issue, and only from a confirmation the customer answered. When the guard replaces a reply, the model's original text is kept on the turn result, so every block can be audited.
+- A genuine second invoice with the same issuer, customer, amount and month is refused by design. Rewording the description does not get it through; that decision belongs to a person.
 
 ## License
 

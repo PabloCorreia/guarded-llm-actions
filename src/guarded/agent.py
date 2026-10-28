@@ -6,6 +6,7 @@ says, the engine decides, and the guard checks the final reply.
 
 import json
 import os
+from dataclasses import dataclass
 
 import anthropic
 
@@ -24,7 +25,10 @@ customer. Then stop and wait for their answer. Call confirm_invoice only after
 the customer has replied yes to that summary.
 
 Only say that an invoice was issued if confirm_invoice returned a receipt_id.
-If a tool refuses, tell the customer in plain words what is missing or wrong."""
+If a tool refuses, tell the customer in plain words what is missing or wrong.
+A request with the same issuer, customer, amount and month as an issued invoice
+is a duplicate whatever the description says. Do not suggest rewording it; a
+genuine second invoice needs a person to approve it."""
 
 TOOLS = [
     {
@@ -66,9 +70,17 @@ def _run_tool(engine: Engine, name: str, args: dict, turn: int) -> dict:
     return {"ok": False, "reason": f"unknown tool {name}"}
 
 
-def run_turn(client: anthropic.Anthropic, engine: Engine, messages: list, turn: int) -> tuple[str, bool]:
-    """Run one customer turn to completion. Returns (reply, blocked_by_guard)."""
+@dataclass
+class TurnResult:
+    reply: str  # what the customer sees
+    blocked: bool  # the guard replaced the model's reply
+    model_text: str  # what the model wrote, kept so a block can be audited
+
+
+def run_turn(client: anthropic.Anthropic, engine: Engine, messages: list, turn: int) -> TurnResult:
+    """Run one customer turn to completion."""
     receipts: list[str] = []
+    summaries: list[str] = []
     while True:
         response = client.beta.messages.create(
             model=MODEL,
@@ -83,7 +95,7 @@ def run_turn(client: anthropic.Anthropic, engine: Engine, messages: list, turn: 
             extra_body={"fallbacks": "default"},
         )
         if response.stop_reason == "refusal":
-            return "Sorry, I can't help with that request.", False
+            return TurnResult("Sorry, I can't help with that request.", False, "")
 
         messages.append({"role": "assistant", "content": response.content})
         if response.stop_reason != "tool_use":
@@ -96,6 +108,8 @@ def run_turn(client: anthropic.Anthropic, engine: Engine, messages: list, turn: 
             outcome = _run_tool(engine, block.name, block.input, turn)
             if outcome.get("receipt_id"):
                 receipts.append(outcome["receipt_id"])
+            if outcome.get("summary"):
+                summaries.append(outcome["summary"])
             results.append({
                 "type": "tool_result",
                 "tool_use_id": block.id,
@@ -105,4 +119,5 @@ def run_turn(client: anthropic.Anthropic, engine: Engine, messages: list, turn: 
         messages.append({"role": "user", "content": results})
 
     text = "".join(b.text for b in response.content if b.type == "text")
-    return review_reply(text, receipts)
+    reply, blocked = review_reply(text, receipts, summaries)
+    return TurnResult(reply, blocked, text)

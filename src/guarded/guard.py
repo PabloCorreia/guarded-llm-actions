@@ -13,14 +13,19 @@ _CLAIM = re.compile(
     re.IGNORECASE,
 )
 
-SAFE_REPLY = (
-    "I haven't issued the invoice yet. Please check the summary above and reply "
-    "'yes' to confirm, or tell me what to change."
-)
+NOT_ISSUED = "I haven't issued the invoice yet."
 
 
-def review_reply(text: str, receipts_this_turn: list[str]) -> tuple[str, bool]:
+def safe_reply(summaries: list[str]) -> str:
+    # The replacement must carry what the customer needs to answer: the model's
+    # reply is gone, so a "see the summary above" would point at nothing.
+    if not summaries:
+        return f"{NOT_ISSUED} Tell me the details and I'll prepare a summary for you to check."
+    return f"{NOT_ISSUED} Here is what I have:\n\n{summaries[-1]}\n\nReply 'yes' to issue it, or tell me what to change."
+
+
+def review_reply(text: str, receipts_this_turn: list[str], summaries_this_turn: list[str] = ()) -> tuple[str, bool]:
     """Return the reply to send and whether it was blocked."""
     if receipts_this_turn or not _CLAIM.search(text):
         return text, False
-    return SAFE_REPLY, True
+    return safe_reply(list(summaries_this_turn)), True
